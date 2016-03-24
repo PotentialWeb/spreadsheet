@@ -5,7 +5,7 @@
 //   import "github.com/Iwark/spreadsheet"
 //   ...
 //   service, err := spreadsheet.New(oauthHttpClient)
-package spreadsheet // import "github.com/Iwark/spreadsheet"
+package spreadsheet // import "github.com/PotentialWeb/spreadsheet"
 
 import (
 	"encoding/xml"
@@ -76,6 +76,33 @@ func NewSheetsService(s *Service) *SheetsService {
 
 type SheetsService struct {
 	s *Service
+}
+
+type sheetDef struct {
+	XMLName xml.Name `xml:"feed"`
+
+	Entries []struct {
+		XMLName xml.Name `xml:"entry"`
+
+		ID      string `xml:"id"`
+		Updated string `xml:"updated"`
+		Title   string `xml:"title"`
+	} `xml:"entry"`
+}
+
+// List returns a map of documents in sheets to their respective keys
+func (ss *SheetsService) List() (map[string]string, error) {
+	res := make(map[string]string)
+	url := fmt.Sprintf("%s/feeds/spreadsheets/private/full", ss.s.BasePath)
+	var defs sheetDef
+	if err := ss.s.fetchAndUnmarshal(url, &defs); err != nil {
+		return nil, err
+	}
+	for _, s := range defs.Entries {
+		parts := strings.Split(s.ID, "/")
+		res[s.Title] = parts[len(parts)-1]
+	}
+	return res, nil
 }
 
 // Worksheets returns the Worksheets object of the client
